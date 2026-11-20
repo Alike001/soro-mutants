@@ -1,0 +1,47 @@
+name: Unix platform compatibility
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unix-compatibility:
+    name: Discovery and reports (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Report environment
+        shell: bash
+        run: |
+          uname -a
+          rustc --version
+          cargo --version
+      - name: Build CLI
+        run: cargo build --locked
+      - name: Unit and integration regressions
+        run: cargo test --locked --all-targets --all-features
+      - name: Platform policy smoke test
+        run: cargo run --locked -- check-platform --json
+      - name: Discover fixture mutants deterministically
+        shell: bash
+        run: |
+          set -euo pipefail
+          cli="target/debug/cargo-soro-mutants"
+          "$cli" list fixtures/weak-auth --json > "$RUNNER_TEMP/first.json"
+          "$cli" list fixtures/weak-auth --json > "$RUNNER_TEMP/second.json"
+          cmp "$RUNNER_TEMP/first.json" "$RUNNER_TEMP/second.json"
+          "$cli" list fixtures/weak-auth --count-only > "$RUNNER_TEMP/count.txt"
+          cat "$RUNNER_TEMP/count.txt"
