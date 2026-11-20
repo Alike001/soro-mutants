@@ -41,9 +41,20 @@ fn list_json_is_stable_for_windows_paths_containing_spaces() {
     };
     let first = run();
     let second = run();
-    assert!(first.status.success(), "{}", String::from_utf8_lossy(&first.stderr));
-    assert!(second.status.success(), "{}", String::from_utf8_lossy(&second.stderr));
-    assert_eq!(first.stdout, second.stdout, "JSON output must be deterministic");
+    assert!(
+        first.status.success(),
+        "{}",
+        String::from_utf8_lossy(&first.stderr)
+    );
+    assert!(
+        second.status.success(),
+        "{}",
+        String::from_utf8_lossy(&second.stderr)
+    );
+    assert_eq!(
+        first.stdout, second.stdout,
+        "JSON output must be deterministic"
+    );
     let _: Value = serde_json::from_slice(&first.stdout).expect("valid JSON report");
 
     let count = Command::new(binary)
@@ -52,8 +63,15 @@ fn list_json_is_stable_for_windows_paths_containing_spaces() {
         .arg("--count-only")
         .output()
         .expect("count-only CLI");
-    assert!(count.status.success(), "{}", String::from_utf8_lossy(&count.stderr));
+    assert!(
+        count.status.success(),
+        "{}",
+        String::from_utf8_lossy(&count.stderr)
+    );
     let count_text = String::from_utf8(count.stdout).expect("UTF-8 count");
-    assert!(count_text.trim().parse::<usize>().is_ok(), "invalid count: {count_text}");
+    assert!(
+        count_text.trim().parse::<usize>().is_ok(),
+        "invalid count: {count_text}"
+    );
     fs::remove_dir_all(&temporary).expect("remove test fixture");
 }
