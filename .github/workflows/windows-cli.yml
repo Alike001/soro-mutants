@@ -1,0 +1,38 @@
+name: Windows CLI compatibility
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-cli:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Report Windows toolchain
+        shell: pwsh
+        run: |
+          rustc --version
+          cargo --version
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Build CLI with locked dependencies
+        run: cargo build --locked
+      - name: Windows-native path and JSON report regressions
+        run: cargo test --locked --test windows_cli_portability -- --nocapture
+      - name: CLI help and list commands
+        shell: pwsh
+        run: |
+          & target/debug/cargo-soro-mutants.exe --help
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & target/debug/cargo-soro-mutants.exe list fixtures/weak-auth --count-only
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
